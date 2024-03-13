@@ -7,7 +7,7 @@ import boto3
 
 AWS_REGION = os.getenv("AWS_REGION")
 TS_DATABASE_NAME = os.getenv("TS_DATABASE_NAME")
-TS_TABLE_NAME = os.getenv("TS_TABLE_NAME", "flight_recos")
+TS_TABLE_NAME = os.getenv("TS_TABLE_NAME", "flight-recos")
 
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "decorated-recos")

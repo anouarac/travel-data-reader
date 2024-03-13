@@ -27,7 +27,7 @@ from confluent_kafka import (
 
 KAFKA_BROKER = os.getenv("KAFKA_BROKER", "localhost:9092")
 KAFKA_GROUP_ID = os.getenv("KAFKA_GROUP_ID", "default-group")
-KAFKA_INPUT_TOPIC = os.getenv("KAFKA_INPUT_TOPIC", "searches")
+KAFKA_INPUT_TOPIC = os.getenv("KAFKA_INPUT_TOPIC", "flight-searches")
 KAFKA_OUTPUT_TOPIC = os.getenv("KAFKA_OUTPUT_TOPIC", "decorated-recos")
 
 _RECO_LAYOUT = [
