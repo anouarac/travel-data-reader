@@ -21,18 +21,18 @@ timestream_client = boto3.client(
     aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
 )
 
+consumer_conf = {
+    "bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS,
+    "group.id": "reco-writers",
+    "auto.offset.reset": "earliest",
+}
+consumer = Consumer(consumer_conf)
+consumer.subscribe([KAFKA_TOPIC])
+
 
 def populate_timestream_from_kafka():
     try:
         while True:
-            consumer_conf = {
-                "bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS,
-                "group.id": "reco-writers",
-                "auto.offset.reset": "earliest",
-            }
-            consumer = Consumer(consumer_conf)
-            consumer.subscribe([KAFKA_TOPIC])
-
             for msg in consumer:
                 if msg.error():
                     print(f"Error: {msg.error()}")
