@@ -5,14 +5,21 @@ import json
 import os
 import boto3
 
-AWS_REGION = os.getenv("AWS_REGION")
-TS_DATABASE_NAME = os.getenv("TS_DATABASE_NAME")
-TS_TABLE_NAME = os.getenv("TS_TABLE_NAME", "flight-recos")
+AWS_REGION = os.getenv("AWS_REGION", "eu-west-1")
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+TS_DATABASE = os.getenv("TS_DATABASE_NAME", "flightdb")
+TS_TABLE = os.getenv("TS_TABLE_NAME", "flight-recos")
 
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "decorated-recos")
 
-timestream_client = boto3.client("timestream-write", region_name=AWS_REGION)
+timestream_client = boto3.client(
+    "timestream-write",
+    region_name=AWS_REGION,
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+)
 
 
 def populate_timestream_from_kafka():
@@ -68,8 +75,8 @@ def populate_timestream_from_kafka():
                     ]
 
                     timestream_client.write_records(
-                        DatabaseName=TS_DATABASE_NAME,
-                        TableName=TS_TABLE_NAME,
+                        DatabaseName=TS_DATABASE,
+                        TableName=TS_TABLE,
                         Records=[
                             {
                                 "Dimensions": dimensions,
