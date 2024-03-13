@@ -1,80 +1,85 @@
 #!/usr/bin/env python3
-from influxdb_client import InfluxDBClient, Point
-from influxdb_client.client.bucket_api import BucketsApi
-from influxdb_client.client.write_api import SYNCHRONOUS
-from confluent_kafka import Consumer, KafkaError
 from datetime import datetime
+from confluent_kafka import Consumer, KafkaError
 import json
 import os
+import boto3
 
-# InfluxDB connection settings
-INFLUXDB_URL = os.getenv("INFLUXDB_URL")
-INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN")
-INFLUXDB_ORG = os.getenv("INFLUXDB_ORG")
-INFLUXDG_BUCKET = os.getenv("INFLUXDB_BUCKET", "flight-recos")
+AWS_REGION = os.getenv("AWS_REGION")
+TS_DATABASE_NAME = os.getenv("TS_DATABASE_NAME")
+TS_TABLE_NAME = os.getenv("TS_TABLE_NAME", "flight_recos")
 
-# Kafka settings
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "decorated-recos")
 
+timestream_client = boto3.client("timestream-write", region_name=AWS_REGION)
 
-def populate_influxdb_from_kafka():
-    # Create an InfluxDB client
-    client = InfluxDBClient(url=INFLUXDB_URL, token=INFLUXDB_TOKEN, org=INFLUXDB_ORG)
 
-    # Create a Write API instance
-    write_api = client.write_api(write_options=SYNCHRONOUS)
-
-    # Create a Kafka consumer
-    consumer_conf = {
-        "bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS,
-        "group.id": "reco-writers",
-        "auto.offset.reset": "earliest",
-    }
-    consumer = Consumer(consumer_conf)
-    consumer.subscribe([KAFKA_TOPIC])
-
+def populate_timestream_from_kafka():
     try:
         while True:
-            msg = consumer.poll(timeout=1.0)
-            if msg is None:
-                continue
-            if msg.error():
-                if msg.error().code() == KafkaError._PARTITION_EOF:
-                    # End of partition event
-                    print(
-                        f"Consumer reached end of partition {msg.topic()} [{msg.partition()}]"
-                    )
-                elif msg.error():
-                    # Error
-                    print(f"Error: {msg.error()}")
-                continue
+            consumer_conf = {
+                "bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS,
+                "group.id": "reco-writers",
+                "auto.offset.reset": "earliest",
+            }
+            consumer = Consumer(consumer_conf)
+            consumer.subscribe([KAFKA_TOPIC])
 
-            json_data = json.loads(msg.value().decode("utf-8"))
-            print("loaded: ", json_data)
-            # current_date = datetime.now()
-            # search_time = json_data["search_time"]
-            # timestamp = datetime.combine(current_date, datetime.strptime(search_time, "%H:%M:%S").time())
-            # timestamp = current_date
-            # timestamp_string = timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")
-            for reco in json_data["recos"]:
-                influx_point = (
-                    Point("decorated_recos")
-                    .tag("search_id", json_data["search_id"])
-                    .tag("search_country", json_data["search_country"])
-                    .tag("OnD", json_data["OnD"])
-                    .tag("trip_type", json_data["trip_type"])
-                    .tag("main_airline", reco["main_marketing_airline"])
-                    .field("price_EUR", reco["price_EUR"])
-                    .field("advance_purchase", json_data["advance_purchase"])
-                    .field("number_of_flights", reco["nb_of_flights"])
-                    .time(
-                        json_data["search_date"] + "T" + json_data["search_time"] + "Z"
-                    )
+            for msg in consumer:
+                if msg.error():
+                    print(f"Error: {msg.error()}")
+                    continue
+
+                json_data = json.loads(msg.value().decode("utf-8"))
+                print("loaded: ", json_data)
+
+                search_id = json_data["search_id"]
+                search_country = json_data["search_country"]
+                OnD = json_data["OnD"]
+                trip_type = json_data["trip_type"]
+                search_date = json_data["search_date"]
+                search_time = json_data["search_time"]
+                timestamp = datetime.strptime(
+                    search_date + "T" + search_time, "%Y-%m-%dT%H:%M:%S"
                 )
 
-                # Write the data point to InfluxDB
-                write_api.write(bucket=INFLUXDG_BUCKET, record=influx_point)
+                for reco in json_data["recos"]:
+                    dimensions = [
+                        {"Name": "search_id", "Value": search_id},
+                        {"Name": "search_country", "Value": search_country},
+                        {"Name": "OnD", "Value": OnD},
+                        {"Name": "trip_type", "Value": trip_type},
+                        {
+                            "Name": "main_airline",
+                            "Value": reco["main_marketing_airline"],
+                        },
+                    ]
+                    measures = [
+                        {"Name": "price_EUR", "Value": str(reco["price_EUR"])},
+                        {
+                            "Name": "advance_purchase",
+                            "Value": str(json_data["advance_purchase"]),
+                        },
+                        {
+                            "Name": "number_of_flights",
+                            "Value": str(reco["nb_of_flights"]),
+                        },
+                    ]
+
+                    timestream_client.write_records(
+                        DatabaseName=TS_DATABASE_NAME,
+                        TableName=TS_TABLE_NAME,
+                        Records=[
+                            {
+                                "Dimensions": dimensions,
+                                "MeasureName": measure["Name"],
+                                "MeasureValue": measure["Value"],
+                                "Time": str(int(timestamp.timestamp() * 1000)),
+                            }
+                            for measure in measures
+                        ],
+                    )
 
     except KeyboardInterrupt:
         consumer.close()
@@ -84,4 +89,4 @@ def populate_influxdb_from_kafka():
 
 
 if __name__ == "__main__":
-    populate_influxdb_from_kafka()
+    populate_timestream_from_kafka()
