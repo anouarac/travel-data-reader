@@ -1,4 +1,4 @@
 git+https://github.com/alexprengere/neobase.git
 pytest
 confluent-kafka
-boto3
+psycopg2

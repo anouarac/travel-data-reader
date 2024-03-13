@@ -8,9 +8,9 @@ import psycopg2
 PG_HOST = os.getenv("PG_HOST", "localhost")
 PG_PORT = os.getenv("PG_PORT", "5432")
 PG_DATABASE = os.getenv("PG_DATABASE", "flightdb")
-PG_USER = os.getenv("PG_USER")
+PG_USER = os.getenv("PG_USER", "postgres")
 PG_PASSWORD = os.getenv("PG_PASSWORD")
-PG_TABLE = os.getenv("PG_TABLE", "flight_recos")
+PG_TABLE = os.getenv("PG_TABLE", "flight-recos")
 
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "decorated-recos")
