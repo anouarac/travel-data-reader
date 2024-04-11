@@ -87,7 +87,9 @@ def populate_postgres_from_kafka():
             for reco in json_data["recos"]:
                 passengers = json_data["passengers_string"]
                 cabin = reco["main_cabin"]
-                stay_duration = (datetime.strptime(json_data["request_return_date"], "%Y-%m-%d") - datetime.strptime(json_data["request_dep_date"], "%Y-%m-%d")).days
+                stay_duration = -1
+                if len(json_data["request_dep_date"]) > 1:
+                    stay_duration = (datetime.strptime(json_data["request_return_date"], "%Y-%m-%d") - datetime.strptime(json_data["request_dep_date"], "%Y-%m-%d")).days
                 
                 sql = f"""
                     INSERT INTO {PG_TABLE} (search_id, search_country, OnD, trip_type, main_airline,
