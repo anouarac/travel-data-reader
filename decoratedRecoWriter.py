@@ -88,9 +88,12 @@ def populate_postgres_from_kafka():
                 passengers = json_data["passengers_string"]
                 cabin = reco["main_cabin"]
                 stay_duration = -1
-                if len(json_data["request_dep_date"]) > 1:
-                    stay_duration = (datetime.strptime(json_data["request_return_date"], "%Y-%m-%d") - datetime.strptime(json_data["request_dep_date"], "%Y-%m-%d")).days
-                
+                try:
+                    if len(json_data["request_dep_date"]) > 1:
+                        stay_duration = (datetime.strptime(json_data["request_return_date"], "%Y-%m-%d") - datetime.strptime(json_data["request_dep_date"], "%Y-%m-%d")).days
+                except Exception as e:
+                    print(f"Error calculating stay duration: {e}")
+
                 sql = f"""
                     INSERT INTO {PG_TABLE} (search_id, search_country, OnD, trip_type, main_airline,
                                             price_EUR, advance_purchase, number_of_flights, time,
