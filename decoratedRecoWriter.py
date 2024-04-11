@@ -35,7 +35,7 @@ def create_table(cursor):
             price_EUR FLOAT,
             advance_purchase INTEGER,
             number_of_flights INTEGER,
-            time TIMESTAMP,
+            search_time TIMESTAMP,
             passengers VARCHAR,
             cabin VARCHAR,
             stay_duration INTEGER
@@ -96,7 +96,7 @@ def populate_postgres_from_kafka():
 
                 sql = f"""
                     INSERT INTO {PG_TABLE} (search_id, search_country, OnD, trip_type, main_airline,
-                                            price_EUR, advance_purchase, number_of_flights, time,
+                                            price_EUR, advance_purchase, number_of_flights, search_time,
                                             passengers, cabin, stay_duration)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
