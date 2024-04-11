@@ -35,7 +35,10 @@ def create_table(cursor):
             price_EUR FLOAT,
             advance_purchase INTEGER,
             number_of_flights INTEGER,
-            time TIMESTAMP
+            time TIMESTAMP,
+            passengers VARCHAR,
+            cabin VARCHAR,
+            stay_duration INTEGER
         )
     """
     cursor.execute(create_table_sql)
@@ -82,10 +85,15 @@ def populate_postgres_from_kafka():
             )
 
             for reco in json_data["recos"]:
+                passengers = json_data["passengers_string"]
+                cabin = reco["main_cabin"]
+                stay_duration = (datetime.strptime(json_data["request_return_date"], "%Y-%m-%d") - datetime.strptime(json_data["request_dep_date"], "%Y-%m-%d")).days
+                
                 sql = f"""
                     INSERT INTO {PG_TABLE} (search_id, search_country, OnD, trip_type, main_airline,
-                                            price_EUR, advance_purchase, number_of_flights, time)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                            price_EUR, advance_purchase, number_of_flights, time,
+                                            passengers, cabin, stay_duration)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
                 cursor.execute(
                     sql,
@@ -99,6 +107,9 @@ def populate_postgres_from_kafka():
                         json_data["advance_purchase"],
                         reco["nb_of_flights"],
                         timestamp,
+                        passengers,
+                        cabin,
+                        stay_duration
                     ),
                 )
 
